@@ -3,13 +3,10 @@ from typing import List, Dict
 import numpy as np
 
 import pretty_midi
-from common import get_files
+from common import load_midis
 
 import click
 
-
-def load_midis(dir: str) -> List[pretty_midi.PrettyMIDI]:
-    return [pretty_midi.PrettyMIDI(file) for file in get_files(dir, "mid")]
 
 
 def get_multiple_number_greater_than(factor: float, target: float):
