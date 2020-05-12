@@ -144,20 +144,29 @@ def build_trainingsdata(train_dir: str,
                         desired_note_count: int
                         ) -> Dict[str, List[List[List[int]]]]:
     # load midis
+    click.echo("Loading training files from {}...".format(train_dir))
     train_midis = load_midis(train_dir)
+    click.echo("Loading testing files from {}...".format(test_dir))
     test_midis = load_midis(test_dir)
+    click.echo("Loading validation files from {}...".format(valid_dir))
     valid_midis = load_midis(valid_dir)
 
     # extract notes
+    click.echo("Processing training files...")
     train_notes = get_all_note_values(train_midis, steps, desired_note_count)
+    click.echo("Processing testing files...")
     test_notes = get_all_note_values(test_midis, steps, desired_note_count)
+    click.echo("Processing validation files...")
     valid_notes = get_all_note_values(valid_midis, steps, desired_note_count)
 
+    click.echo("Combining processed data...")
     return build_training_dict(train_notes, test_notes, valid_notes)
 
 
 def save_trainingsdata(notes: Dict[str, List[List[List[int]]]], filename: str):
+    click.echo("Saving with pickle...")
     save_notes_with_pickle(notes, filename + ".pkl")
+    click.echo("Saving with numpy...")
     save_notes_with_numpy(transform_training_dict(notes), filename + ".npz")
 
 
@@ -174,7 +183,7 @@ def main(train_dir: str,
          out: str,
          steps: float,
          desired_note_count: int):
-    click.echo("Processing files...")
+    click.echo("Processing files with steps={} and note_count={}...".format(steps, desired_note_count))
     notes = build_trainingsdata(
         train_dir,
         test_dir,
