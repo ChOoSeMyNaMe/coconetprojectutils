@@ -7,14 +7,44 @@ import pretty_midi
 from common import load_midis_with_files, get_file_name
 
 
+class Timespan:
+    def __init__(self, start: float, end: float):
+        self.start = start
+        self.end = end
+
+    def get_contained(self, other: "Timespan") -> "Timespan":
+        if self.start <= other.start < self.end:
+            if other.end < self.end:
+                return other
+            else:
+                return Timespan(other.start, self.end)
+        else:
+            if other.end >= self.start and other.start < self.end:
+                if other.end > self.end:
+                    return Timespan(self.start, self.end)
+                else:
+                    return Timespan(self.start, other.end)
+        return None
+
+    def subtract(self, offset: float):
+        self.start = max(0, self.start - offset)
+        self.end = max(0, self.end - offset)
+
+
 def create_sub_midi(midi: pretty_midi.PrettyMIDI, start_time: float, end_time: float) -> pretty_midi.PrettyMIDI:
     result = pretty_midi.PrettyMIDI()
+    part_timespan = Timespan(start_time, end_time)
 
     for instr in midi.instruments:
         subInstr = pretty_midi.Instrument(instr.program, instr.is_drum, instr.name)
+        note: pretty_midi.Note
         for note in instr.notes:
-            if note.start >= start_time and note.end < end_time:
-                subInstr.notes.append(note)
+            note_timespan = Timespan(note.start, note.end)
+            sub_timespan = part_timespan.get_contained(note_timespan)
+            if sub_timespan is not None:
+                sub_timespan.subtract(start_time)
+                subNote = pretty_midi.Note(note.velocity, note.pitch, sub_timespan.start, sub_timespan.end)
+                subInstr.notes.append(subNote)
         result.instruments.append(subInstr)
     return result
 
@@ -54,7 +84,7 @@ def split_all_midis_from_dir(dir: str, output_dir: str,
         for i in range(len(parts)):
             output = "{}_{}.mid".format(name, i)
             output = os.path.join(output_dir, output)
-            midi.write(output)
+            parts[i].write(output)
 
 
 @click.command()
