@@ -2,11 +2,9 @@ from math import floor
 from typing import List, Dict
 import numpy as np
 
-import pretty_midi
-from common import load_midis
+from common import *
 
 import click
-
 
 
 def get_multiple_number_greater_than(factor: float, target: float):
@@ -21,14 +19,14 @@ def get_multiple_number_greater_than(factor: float, target: float):
 def get_notes_from_instrument(instr: pretty_midi.Instrument, steps: float) -> Dict[float, List[pretty_midi.Note]]:
     result: Dict[float, List[pretty_midi.Note]] = {}
     for note in instr.notes:
-        start = note.start
-        end = note.end
-        time = get_multiple_number_greater_than(steps, start)
-        if start <= time and end >= time:
+        note_time = timespan_from_note(note)
+        time = get_multiple_number_greater_than(steps, note_time.start)
+        while note_time.contains(time):
             if time not in result:
                 result[time] = [note]
             else:
                 result[time].append(note)
+            time += steps
     return result
 
 

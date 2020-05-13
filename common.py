@@ -31,3 +31,34 @@ def get_file_name(path: str) -> str:
     if ext_point != -1:
         return fullname[:ext_point]
     return fullname
+
+
+class Timespan:
+    def __init__(self, start: float, end: float):
+        self.start = start
+        self.end = end
+
+    def get_contained(self, other: "Timespan") -> "Timespan":
+        if self.start <= other.start < self.end:
+            if other.end < self.end:
+                return other
+            else:
+                return Timespan(other.start, self.end)
+        else:
+            if other.end >= self.start and other.start < self.end:
+                if other.end > self.end:
+                    return Timespan(self.start, self.end)
+                else:
+                    return Timespan(self.start, other.end)
+        return None
+
+    def subtract(self, offset: float):
+        self.start = max(0, self.start - offset)
+        self.end = max(0, self.end - offset)
+
+    def contains(self, time: float) -> bool:
+        return self.start <= time <= self.end
+
+
+def timespan_from_note(note: pretty_midi.Note) -> Timespan:
+    return Timespan(note.start, note.end)

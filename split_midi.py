@@ -4,31 +4,7 @@ from typing import List
 import click
 import pretty_midi
 
-from common import load_midis_with_files, get_file_name
-
-
-class Timespan:
-    def __init__(self, start: float, end: float):
-        self.start = start
-        self.end = end
-
-    def get_contained(self, other: "Timespan") -> "Timespan":
-        if self.start <= other.start < self.end:
-            if other.end < self.end:
-                return other
-            else:
-                return Timespan(other.start, self.end)
-        else:
-            if other.end >= self.start and other.start < self.end:
-                if other.end > self.end:
-                    return Timespan(self.start, self.end)
-                else:
-                    return Timespan(self.start, other.end)
-        return None
-
-    def subtract(self, offset: float):
-        self.start = max(0, self.start - offset)
-        self.end = max(0, self.end - offset)
+from common import *
 
 
 def create_sub_midi(midi: pretty_midi.PrettyMIDI, start_time: float, end_time: float) -> pretty_midi.PrettyMIDI:
@@ -39,7 +15,7 @@ def create_sub_midi(midi: pretty_midi.PrettyMIDI, start_time: float, end_time: f
         subInstr = pretty_midi.Instrument(instr.program, instr.is_drum, instr.name)
         note: pretty_midi.Note
         for note in instr.notes:
-            note_timespan = Timespan(note.start, note.end)
+            note_timespan = timespan_from_note(note)
             sub_timespan = part_timespan.get_contained(note_timespan)
             if sub_timespan is not None:
                 sub_timespan.subtract(start_time)
