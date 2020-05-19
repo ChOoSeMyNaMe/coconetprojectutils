@@ -52,7 +52,7 @@ def split_all_midis_from_dir(dir: str, output_dir: str,
     midis = load_midis_with_files(dir)
 
     click.echo("Processing data...")
-    for file, midi in midis.items():
+    for file, midi in midis:
         click.echo("Processing {}...".format(file))
         parts = split_midi(midi, optimal_part_count, min_length, max_length)
         name = get_file_name(file)

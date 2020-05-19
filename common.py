@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict
+from typing import List, Dict, Generator, Tuple, Iterable
 import pretty_midi
 
 
@@ -14,15 +14,12 @@ def get_files(dir: str, extension: str = None) -> List[str]:
     return result
 
 
-def load_midis_with_files(dir: str) -> Dict[str, pretty_midi.PrettyMIDI]:
-    result = {}
-    for file in get_files(dir, "mid"):
-        result[file] = pretty_midi.PrettyMIDI(file)
-    return result
+def load_midis_with_files(dir: str) -> Iterable[Tuple[str, pretty_midi.PrettyMIDI]]:
+    return ((file, pretty_midi.PrettyMIDI(file)) for file in get_files(dir, "mid"))
 
 
-def load_midis(dir: str) -> List[pretty_midi.PrettyMIDI]:
-    return [pretty_midi.PrettyMIDI(file) for file in get_files(dir, "mid")]
+def load_midis(dir: str) -> Iterable[pretty_midi.PrettyMIDI]:
+    return (pretty_midi.PrettyMIDI(file) for file in get_files(dir, "mid"))
 
 
 def get_file_name(path: str) -> str:
@@ -58,6 +55,9 @@ class Timespan:
 
     def contains(self, time: float) -> bool:
         return self.start <= time <= self.end
+
+    def overlaps(self, other: "Timespan") -> bool:
+        return self.get_contained(other) is not None
 
 
 def timespan_from_note(note: pretty_midi.Note) -> Timespan:
