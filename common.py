@@ -1,4 +1,5 @@
 import os
+from numbers import Number
 from typing import List, Dict, Generator, Tuple, Iterable
 import pretty_midi
 
@@ -62,3 +63,7 @@ class Timespan:
 
 def timespan_from_note(note: pretty_midi.Note) -> Timespan:
     return Timespan(note.start, note.end)
+
+
+def is_in_range(value: Number, min: Number, max: Number) -> bool:
+    return min <= value <= max

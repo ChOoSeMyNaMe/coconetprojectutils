@@ -92,6 +92,30 @@ def get_voice_likelihood(pitches: Tuple[int, int], voice: Tuple[int, int]) -> fl
     return count / (voice[1] - voice[0])
 
 
+def get_voice_likelihood_of_instrument(notes: Dict[float, List[List[pretty_midi.Note]]], instr_index: int) -> \
+        Dict[Tuple[str, Tuple[int, int]], float]:
+    total_note_count = 0
+    voice_notes_counts = {
+        RANGE_VOICES[0]: 0,
+        RANGE_VOICES[1]: 0,
+        RANGE_VOICES[2]: 0,
+        RANGE_VOICES[3]: 0
+    }
+    for time, instruments in notes.items():
+        instr_notes = instruments[instr_index]
+        total_note_count += len(instr_notes)
+
+        for note in instr_notes:
+            for voice_tuple in RANGE_VOICES:
+                if is_in_range(note.pitch, voice_tuple[1][0], voice_tuple[1][1]):
+                    voice_notes_counts[voice_tuple] += 1
+
+    for voice_tuple in RANGE_VOICES:
+        voice_notes_counts[voice_tuple] = (
+                voice_notes_counts[voice_tuple] / total_note_count) if total_note_count > 0 else 0
+    return voice_notes_counts
+
+
 def get_voices(pitches: Tuple[int, int]) -> List[Tuple[str, float]]:
     result = []
     for voice in RANGE_VOICES:
@@ -112,10 +136,17 @@ def extract_instrument(notes: Dict[float, List[List[pretty_midi.Note]]], instr_i
     return result
 
 
+def print_colored(text, color, colored=True):
+    if colored:
+        click.echo(color + text + Style.RESET_ALL)
+    else:
+        click.echo(text)
+
+
 def analyse_file(file: Tuple[str, pretty_midi.PrettyMIDI], note_count: int, time_steps: float) -> bool:
     notes = get_notes_from_midi(file[1], time_steps)
     concurrent_count = get_concurrent_note_count(notes)
-    click.echo("{} has a maximum of {} concurrent notes.".format(file[0], concurrent_count))
+    print_colored("{} has a maximum of {} concurrent notes.".format(file[0], concurrent_count), Fore.RED, concurrent_count > note_count)
 
     instr: pretty_midi.Instrument
     filtered_voice_count = 0
@@ -123,37 +154,44 @@ def analyse_file(file: Tuple[str, pretty_midi.PrettyMIDI], note_count: int, time
     for instr_index in range(len(file[1].instruments)):
         instr = file[1].instruments[instr_index]
         pitches = get_pitch_ranges_from_instrument(notes, instr_index)
+        likelihood = get_voice_likelihood_of_instrument(notes, instr_index)
 
-        voices = get_voices(pitches)
-        click.echo(Fore.BLUE +
-                   "{}:{}({}) with {},{} has voice likelihood: {}".format(file[0], instr.name,
-                                                                                       instr.program,
-                                                                                       pitches[0], pitches[1],
-                                                                                       ", ".join([
-                                                                                                     f"{voice[0]}: {voice[1]:.2f}"
-                                                                                                     for voice in
-                                                                                                     voices])))
+        voices = [(voice_tuple[0], val) for voice_tuple, val in likelihood.items()]
+        print_colored("{}:{}({}) with {},{} has voice likelihood: {}".format(
+            file[0], instr.name,
+            instr.program,
+            pitches[0], pitches[1],
+            ", ".join([
+                f"{voice[0]}: {voice[1]:.2f}"
+                for voice in
+                voices])
+        ), Fore.BLUE)
         filtered_voices = [voice[0] for voice in voices if voice[1] > 0.9]
         if len(filtered_voices) > 0:
-            click.echo(Fore.GREEN +
-                       "{}:{}({}) with {},{} has the following possible voices: {}".format(file[0], instr.name,
-                                                                                           instr.program,
-                                                                                           pitches[0], pitches[1],
-                                                                                           ", ".join(filtered_voices))
-                       + Style.RESET_ALL)
+            print_colored("{}:{}({}) with {},{} has the following possible voices: {}".format(
+                file[0], instr.name,
+                instr.program,
+                pitches[0], pitches[1],
+                ", ".join(filtered_voices)
+            ), Fore.GREEN)
             filtered_voice_count += 1
             filtered_instr = extract_instrument(notes, instr_index, filtered_instr)
         else:
-            click.echo(Fore.RED + "{}:{}({}) with {},{} has none of the requested voices.".format(file[0], instr.name,
-                                                                                                  instr.program,
-                                                                                                  pitches[0], pitches[
-                                                                                                      1]) + Style.RESET_ALL)
+            print_colored("{}:{}({}) with {},{} has none of the requested voices.".format(
+                file[0], instr.name,
+                instr.program,
+                pitches[0], pitches[
+                    1]
+            ), Fore.LIGHTRED_EX)
 
-    click.echo("{} has a maximum of {} recognized voices.".format(file[0], filtered_voice_count))
+    print_colored("{} has a maximum of {} recognized voices.".format(file[0], filtered_voice_count),
+                  Fore.RED, filtered_voice_count > note_count)
     if filtered_instr is not None:
         concurrent_count = get_concurrent_note_count(filtered_instr)
-        click.echo(
-            "{} has a maximum of {} concurrent notes in the filtered instruments.".format(file[0], concurrent_count))
+        print_colored(
+            "{} has a maximum of {} concurrent notes in the filtered instruments.".format(file[0], concurrent_count),
+            Fore.RED, concurrent_count > note_count
+        )
 
     return concurrent_count == note_count
 
