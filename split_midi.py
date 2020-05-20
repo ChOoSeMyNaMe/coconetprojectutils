@@ -1,4 +1,6 @@
+import math
 import os
+import random
 from typing import List
 
 import click
@@ -30,17 +32,19 @@ def split_midi(midi: pretty_midi.PrettyMIDI,
                min_length: float = 15,
                max_length: float = 90) -> List[pretty_midi.PrettyMIDI]:
     total_length = midi.get_end_time()
-    part_length = total_length / optimal_part_count
-    part_length = max(min_length, part_length)
-    part_length = min(max_length, part_length)
+    # part_length = total_length / optimal_part_count
+    # part_length = max(min_length, part_length)
+    # part_length = min(max_length, part_length)
+    # part_length = random.randrange(min_length, max_length)
 
     result = []
     time = 0.0
     while time < total_length:
-        part_end = min(total_length, time + part_length)
+        tmp_length = random.randrange(min_length, max_length)
+        part_end = min(total_length, time + tmp_length)
         part = create_sub_midi(midi, time, part_end)
         result.append(part)
-        time += part_length
+        time += tmp_length
     return result
 
 
