@@ -1,3 +1,5 @@
+"""Testing note reduction but it's not really good working"""
+
 from math import floor
 from typing import List, Dict
 import numpy as np

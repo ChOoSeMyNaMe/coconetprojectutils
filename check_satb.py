@@ -1,3 +1,9 @@
+"""
+Analysis of MIDI files and filtering MIDI files according to note count
+tl;dr check if max 4 notes concurrently
+"""
+
+
 from math import floor
 from typing import List, Dict
 import numpy as np

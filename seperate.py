@@ -1,3 +1,8 @@
+"""
+Separate randomly MIDI-files into train, valid and test folders
+Separation happens evenly distributed
+"""
+
 import os
 import random
 import shutil

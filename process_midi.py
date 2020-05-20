@@ -1,3 +1,9 @@
+"""
+Process small MIDI files into a Numpy-Trainingssetfile
+Files have to be in seperate folders for train, test and valid -> cli-options
+"""
+
+
 from math import floor
 from typing import List, Dict
 import numpy as np

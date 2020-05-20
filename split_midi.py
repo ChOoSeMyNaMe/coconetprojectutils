@@ -1,3 +1,7 @@
+"""
+Splitting MIDI files into smaller ones with random lengths between min_length and max_length
+"""
+
 import math
 import os
 import random
