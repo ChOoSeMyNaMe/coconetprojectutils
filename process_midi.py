@@ -72,7 +72,8 @@ def get_all_note_values(midis: List[pretty_midi.PrettyMIDI],
 
 
 def transform_notes(notes: List[List[List[int]]]) -> any:
-    return np.array(notes, dtype=np.int_)
+    data = [np.array(piece, dtype=np.float_) for piece in notes]
+    return np.array(data, dtype=np.object)
 
 
 def build_training_dict(notes_train: List[List[List[int]]],
@@ -105,7 +106,7 @@ def save_notes_with_pickle(notes: Dict[str, List[List[List[int]]]], file: str):
 
 def save_notes_with_numpy(notes: Dict[str, any], file: str):
     with open(file, "wb") as f:
-        np.savez(f, **notes)
+        np.savez_compressed(f, **notes)
 
 
 def load_notes_with_pickle(file: str) -> Dict[str, List[List[List[int]]]]:
