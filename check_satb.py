@@ -192,7 +192,7 @@ def analyse_file(file: Tuple[str, pretty_midi.PrettyMIDI], note_count: int, time
             Fore.RED, concurrent_count > note_count
         )
 
-    return concurrent_count == note_count
+    return concurrent_count <= note_count
 
 
 @click.command()
