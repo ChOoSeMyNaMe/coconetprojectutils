@@ -11,6 +11,7 @@ import click
 
 from common import *
 
+
 def get_sets(folder: str) -> List[List[str]]:
     files = get_files(folder, "mid")
     count = len(files)
@@ -36,6 +37,7 @@ def get_sets(folder: str) -> List[List[str]]:
 
 def copy_file(origin: str, dest_folder: str):
     shutil.copy(origin, dest_folder)
+
 
 def copy_sets(sets: List[List[str]], folder: str):
     subfolders = ["train", "test", "valid"]

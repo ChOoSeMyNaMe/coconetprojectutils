@@ -1,7 +1,10 @@
 import os
 from numbers import Number
 from typing import List, Dict, Generator, Tuple, Iterable
+
+import click
 import pretty_midi
+from colorama import Style
 
 
 def get_files(dir: str, extension: str = None) -> List[str]:
@@ -16,7 +19,13 @@ def get_files(dir: str, extension: str = None) -> List[str]:
 
 
 def load_midis_with_files(dir: str) -> Iterable[Tuple[str, pretty_midi.PrettyMIDI]]:
-    return ((file, pretty_midi.PrettyMIDI(file)) for file in get_files(dir, "mid"))
+    files = get_files(dir, "mid")
+    for file in files:
+        try:
+            mid = pretty_midi.PrettyMIDI(file)
+            yield (file, mid)
+        except IOError:
+            continue
 
 
 def load_midis(dir: str) -> Iterable[pretty_midi.PrettyMIDI]:
@@ -25,7 +34,7 @@ def load_midis(dir: str) -> Iterable[pretty_midi.PrettyMIDI]:
 
 def get_file_name(path: str) -> str:
     fullname = os.path.basename(path)
-    ext_point = fullname.rindex(".")
+    ext_point = fullname.rfind(".")
     if ext_point != -1:
         return fullname[:ext_point]
     return fullname
@@ -67,3 +76,17 @@ def timespan_from_note(note: pretty_midi.Note) -> Timespan:
 
 def is_in_range(value: Number, min: Number, max: Number) -> bool:
     return min <= value <= max
+
+
+def get_and_create_folder_path(folder: str, name: str) -> str:
+    path = os.path.join(folder, name)
+    if not os.path.exists(path):
+        os.mkdir(path)
+    return path
+
+
+def print_colored(text, color, colored=True):
+    if colored:
+        click.echo(color + text + Style.RESET_ALL)
+    else:
+        click.echo(text)

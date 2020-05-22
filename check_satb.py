@@ -3,7 +3,6 @@ Analysis of MIDI files and filtering MIDI files according to note count
 tl;dr check if max 4 notes concurrently
 """
 
-
 from math import floor
 from typing import List, Dict
 import numpy as np
@@ -142,17 +141,11 @@ def extract_instrument(notes: Dict[float, List[List[pretty_midi.Note]]], instr_i
     return result
 
 
-def print_colored(text, color, colored=True):
-    if colored:
-        click.echo(color + text + Style.RESET_ALL)
-    else:
-        click.echo(text)
-
-
 def analyse_file(file: Tuple[str, pretty_midi.PrettyMIDI], note_count: int, time_steps: float) -> bool:
     notes = get_notes_from_midi(file[1], time_steps)
     concurrent_count = get_concurrent_note_count(notes)
-    print_colored("{} has a maximum of {} concurrent notes.".format(file[0], concurrent_count), Fore.RED, concurrent_count > note_count)
+    print_colored("{} has a maximum of {} concurrent notes.".format(file[0], concurrent_count), Fore.RED,
+                  concurrent_count > note_count)
 
     instr: pretty_midi.Instrument
     filtered_voice_count = 0

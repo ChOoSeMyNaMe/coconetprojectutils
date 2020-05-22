@@ -32,7 +32,6 @@ def create_sub_midi(midi: pretty_midi.PrettyMIDI, start_time: float, end_time: f
 
 
 def split_midi(midi: pretty_midi.PrettyMIDI,
-               optimal_part_count: int = 5,
                min_length: float = 15,
                max_length: float = 90) -> List[pretty_midi.PrettyMIDI]:
     total_length = midi.get_end_time()
@@ -53,7 +52,6 @@ def split_midi(midi: pretty_midi.PrettyMIDI,
 
 
 def split_all_midis_from_dir(dir: str, output_dir: str,
-                             optimal_part_count: int = 5,
                              min_length: float = 15,
                              max_length: float = 90):
     click.echo("Loading files from {}...".format(dir))
@@ -62,7 +60,7 @@ def split_all_midis_from_dir(dir: str, output_dir: str,
     click.echo("Processing data...")
     for file, midi in midis:
         click.echo("Processing {}...".format(file))
-        parts = split_midi(midi, optimal_part_count, min_length, max_length)
+        parts = split_midi(midi, min_length, max_length)
         name = get_file_name(file)
         click.echo("Saving {}...".format(file))
         for i in range(len(parts)):
@@ -74,18 +72,16 @@ def split_all_midis_from_dir(dir: str, output_dir: str,
 @click.command()
 @click.option("input_dir", "--input", "-i", type=click.Path(exists=True, file_okay=False), required=True)
 @click.option("output_dir", "--output", "-o", type=click.Path(exists=True, file_okay=False), required=True)
-@click.option("--optimal_part_count", "-count", default=5, type=int, show_default=True)
 @click.option("--min_length", "-min", default=15, type=float, show_default=True)
 @click.option("--max_length", "-max", default=90, type=float, show_default=True)
 def main(input_dir: str,
          output_dir: str,
-         optimal_part_count: int = 5,
          min_length: float = 15,
          max_length: float = 90):
     click.echo(
-        "Processing files from {} to {} with {}(min: {}, max: {})...".format(input_dir, output_dir, optimal_part_count,
-                                                                             min_length, max_length))
-    split_all_midis_from_dir(input_dir, output_dir, optimal_part_count, min_length, max_length)
+        "Processing files from {} to {} with min: {}, max: {}...".format(input_dir, output_dir,
+                                                                         min_length, max_length))
+    split_all_midis_from_dir(input_dir, output_dir, min_length, max_length)
     click.echo("Done.")
 
 
