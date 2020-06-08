@@ -16,18 +16,38 @@ RANGE_BASS = [36, 66]
 RANGE_VOICES = [RANGE_SOPRAN, RANGE_ALT, RANGE_TENOR, RANGE_BASS]
 
 
-def transform_pitches(notes: List[int], double_index: int):
-    return [(note + 12 if i < double_index else note) for i, note in enumerate(notes)]
-
-
-def is_base_pitch(notes: List[int], double_index: int) -> List[int]:
-    values = transform_pitches(notes, double_index)
-    values.sort()
+def f_pitch1(values: List[int]) -> List[int]:
     for i in range(1, len(values)):
         if values[0] + 4 == values[i]:
             for j in range(i + 1, len(values)):
                 if values[i] + 3 == values[j]:
                     return [values[0], values[i], values[j], values[0] + 12]
+    return None
+
+
+def f_pitch2(values: List[int]) -> List[int]:
+    for i in range(1, len(values)):
+        if values[0] + 3 == values[i]:
+            for j in range(i + 1, len(values)):
+                if values[i] + 4 == values[j]:
+                    return [values[0], values[i], values[j], values[0] + 12]
+    return None
+
+
+PITCH_FUNCTIONS = [f_pitch1, f_pitch2]
+
+
+def transform_pitches(notes: List[int], double_index: int):
+    return [(note + 12 if i < double_index else note) for i, note in enumerate(notes)]
+
+def get_base_pitches(notes: List[int], double_index: int) -> List[int]:
+    values = transform_pitches(notes, double_index)
+    values.sort()
+    for func in PITCH_FUNCTIONS:
+        result = func(values)
+        if result is not None:
+            return result
+    return None
 
 
 def get_double_pitch(notes: List[int]) -> int:
@@ -93,7 +113,7 @@ def normalize_notelists(notes: List[int], desired_note_count: int) -> List[int]:
     if len(notes) == desired_note_count:
         return notes
 
-    return is_base_pitch(notes, get_double_pitch(notes))
+    return get_base_pitches(notes, get_double_pitch(notes))
 
 
 def get_note_values_from_midi(mid: pretty_midi.PrettyMIDI, steps: float, desired_note_count: int) -> List[List[int]]:
