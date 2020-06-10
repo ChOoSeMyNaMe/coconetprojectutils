@@ -130,11 +130,11 @@ def split_array(array: List[any], count: int) -> List[List[any]]:
 
 def normalize_notelists(notes: List[int], desired_note_count: int) -> List[int]:
     if len(notes) <= desired_note_count:
+        while len(notes) < desired_note_count:
+            notes.append(None)
         return notes
 
     result = get_base_pitches(notes, get_double_pitch(notes))
-    # if result is None:
-    #     raise Exception("could not normalize")
     return result
 
 
@@ -178,8 +178,8 @@ def consume_further_notes(notes: List[List[int]], offset: int, pitch: int) -> in
 def create_midi(notes: List[List[int]], steps: float) -> pretty_midi.PrettyMIDI:
     result = pretty_midi.PrettyMIDI(initial_tempo=80)
     offset = 0
-    # instr = [pretty_midi.Instrument(i) for i in range(len(RANGE_VOICES))]
-    instr = pretty_midi.Instrument(0)
+    instr = [pretty_midi.Instrument(i) for i in range(len(RANGE_VOICES))]
+    # instr = pretty_midi.Instrument(0)
     for moment_index in range(len(notes)):
         for pitch_index in range(len(notes[moment_index])):
             pitch = notes[moment_index][pitch_index]
@@ -187,11 +187,11 @@ def create_midi(notes: List[List[int]], steps: float) -> pretty_midi.PrettyMIDI:
                 total_pitch_length = consume_further_notes(notes, moment_index + 1, pitch) + 1
                 total_pitch_length *= steps
                 note = pretty_midi.Note(80, pitch, offset, offset + total_pitch_length)
-                # instr[pitch_index].notes.append(note)
-                instr.notes.append(note)
+                instr[pitch_index].notes.append(note)
+                # instr.notes.append(note)
         offset += steps
-    # result.instruments.extend(instr)
-    result.instruments.append(instr)
+    result.instruments.extend(instr)
+    # result.instruments.append(instr)
     return result
 
 
