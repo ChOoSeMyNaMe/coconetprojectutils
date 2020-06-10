@@ -7,7 +7,7 @@ import pretty_midi
 from colorama import Style
 
 
-def get_files(dir: str, extension: str = None) -> List[str]:
+def get_files(dir: str, extension: str = None, recursive: bool = False) -> List[str]:
     result = []
     files = os.listdir(dir)
     for file in files:
@@ -15,11 +15,13 @@ def get_files(dir: str, extension: str = None) -> List[str]:
         if os.path.isfile(fullpath):
             if extension is None or file.endswith("." + extension):
                 result.append(fullpath)
+        elif recursive and os.path.isdir(fullpath):
+            result.extend(get_files(fullpath, extension, recursive))
     return result
 
 
-def load_midis_with_files(dir: str) -> Iterable[Tuple[str, pretty_midi.PrettyMIDI]]:
-    files = get_files(dir, "mid")
+def load_midis_with_files(dir: str, recursive: bool = False) -> Iterable[Tuple[str, pretty_midi.PrettyMIDI]]:
+    files = get_files(dir, "mid", recursive)
     for file in files:
         try:
             mid = pretty_midi.PrettyMIDI(file)
@@ -81,7 +83,7 @@ def is_in_range(value: Number, min: Number, max: Number) -> bool:
 def get_and_create_folder_path(folder: str, name: str) -> str:
     path = os.path.join(folder, name)
     if not os.path.exists(path):
-        os.mkdir(path)
+        os.makedirs(path)
     return path
 
 

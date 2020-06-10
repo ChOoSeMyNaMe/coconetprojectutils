@@ -129,7 +129,7 @@ def split_array(array: List[any], count: int) -> List[List[any]]:
 
 
 def normalize_notelists(notes: List[int], desired_note_count: int) -> List[int]:
-    if len(notes) == desired_note_count:
+    if len(notes) <= desired_note_count:
         return notes
 
     result = get_base_pitches(notes, get_double_pitch(notes))
@@ -200,15 +200,17 @@ def create_midi(notes: List[List[int]], steps: float) -> pretty_midi.PrettyMIDI:
 @click.option("output_dir", "--output", "-o", type=click.Path(exists=True, file_okay=False), required=True)
 @click.option("--note_count", "-count", default=4, type=int, show_default=True)
 @click.option("--time_steps", "-time", default=0.125, type=float, show_default=True)
+@click.option("--recursive", "-r", default=False, type=bool, show_default=True)
 def main(input_dir: str,
          output_dir: str,
          note_count: int = 4,
-         time_steps: float = 0.125):
+         time_steps: float = 0.125,
+         recursive: bool = False):
     click.echo(
         "Processing files from {} to {} with {} notes in {} steps...".format(input_dir, output_dir, note_count,
                                                                              time_steps))
 
-    midis = load_midis_with_files(input_dir)
+    midis = load_midis_with_files(input_dir, recursive)
     for file, midi in midis:
         try:
             click.echo("Processing {}...".format(file))
@@ -217,7 +219,13 @@ def main(input_dir: str,
 
             name = get_file_name(file)
             output = "{}_{}.mid".format(name, "reduced")
-            output = os.path.join(output_dir, output)
+            if not recursive:
+                output = os.path.join(output_dir, output)
+            else:
+                subdir = os.path.dirname(file)
+                subdir = os.path.relpath(subdir, input_dir)
+                subdir = get_and_create_folder_path(output_dir, subdir)
+                output = os.path.join(subdir, output)
             click.echo("Saving {}...".format(output))
             new_midi.write(output)
         except Exception as e:
