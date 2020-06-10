@@ -16,29 +16,48 @@ RANGE_BASS = [36, 66]
 RANGE_VOICES = [RANGE_SOPRAN, RANGE_ALT, RANGE_TENOR, RANGE_BASS]
 
 
-def f_pitch1(values: List[int]) -> List[int]:
+def is_grundton(values: List[int]) -> List[int]:  # Grundton ist doppelt
     for i in range(1, len(values)):
-        if values[0] + 4 == values[i]:
+        if values[0] + 4 == values[i]:  # Dur Akkord
+            for j in range(i + 1, len(values)):
+                if values[i] + 3 == values[j] or values[i] + 4 == values[j]:
+                    return [values[0], values[i], values[j], values[0] + 12]
+        elif values[0] + 3 == values[i]:  # Moll Akkord
+            for j in range(i + 1, len(values)):
+                if values[i] + 4 == values[j] or values[i] + 3 == values[j]:
+                    return [values[0], values[i], values[j], values[0] + 12]
+
+
+def is_quinte(values: List[int]) -> List[int]:  # Quinte ist doppelt
+    for i in range(1, len(values)):
+        if values[0] + 5 == values[i]:  # Dur Akkord
+            for j in range(i + 1, len(values)):
+                if values[i] + 4 == values[j] or values[i] + 3 == values[j]:
+                    return [values[0], values[i], values[j], values[0] + 12]
+        elif values[0] + 6 == values[i]:  # Moll Akkord
             for j in range(i + 1, len(values)):
                 if values[i] + 3 == values[j]:
                     return [values[0], values[i], values[j], values[0] + 12]
-    return None
 
 
-def f_pitch2(values: List[int]) -> List[int]:
+def is_terz(values: List[int]) -> List[int]:  # Terz ist doppelt
     for i in range(1, len(values)):
-        if values[0] + 3 == values[i]:
+        if values[0] + 3 == values[i]:  # Dur Akkord
             for j in range(i + 1, len(values)):
-                if values[i] + 4 == values[j]:
+                if values[i] + 5 == values[j] or values[i] + 6 == values[j]:
                     return [values[0], values[i], values[j], values[0] + 12]
-    return None
+        elif values[0] + 4 == values[i]:  # Moll Akkord
+            for j in range(i + 1, len(values)):
+                if values[i] + 5 == values[j]:
+                    return [values[0], values[i], values[j], values[0] + 12]
 
 
-PITCH_FUNCTIONS = [f_pitch1, f_pitch2]
+PITCH_FUNCTIONS = [is_grundton, is_quinte, is_terz]
 
 
 def transform_pitches(notes: List[int], double_index: int):
     return [(note + 12 if i < double_index else note) for i, note in enumerate(notes)]
+
 
 def get_base_pitches(notes: List[int], double_index: int) -> List[int]:
     values = transform_pitches(notes, double_index)
@@ -113,7 +132,10 @@ def normalize_notelists(notes: List[int], desired_note_count: int) -> List[int]:
     if len(notes) == desired_note_count:
         return notes
 
-    return get_base_pitches(notes, get_double_pitch(notes))
+    result = get_base_pitches(notes, get_double_pitch(notes))
+    # if result is None:
+    #     raise Exception("could not normalize")
+    return result
 
 
 def get_note_values_from_midi(mid: pretty_midi.PrettyMIDI, steps: float, desired_note_count: int) -> List[List[int]]:
@@ -123,10 +145,18 @@ def get_note_values_from_midi(mid: pretty_midi.PrettyMIDI, steps: float, desired
     while len(notes) > 0:
         if time in notes:
             pretty_notes = notes[time]
-            result.append(normalize_notelists([note.pitch for note in pretty_notes], desired_note_count))
+            r = normalize_notelists([note.pitch for note in pretty_notes], desired_note_count)
+            if r is not None:
+                result.append(r)
+            else:
+                result.append([])
             del notes[time]
         else:
-            result.append(normalize_notelists([], desired_note_count))
+            r = normalize_notelists([], desired_note_count)
+            if r is not None:
+                result.append(r)
+            else:
+                result.append([])
         time += steps
     return result
 
@@ -180,15 +210,18 @@ def main(input_dir: str,
 
     midis = load_midis_with_files(input_dir)
     for file, midi in midis:
-        click.echo("Processing {}...".format(file))
-        notes = get_note_values_from_midi(midi, time_steps, note_count)
-        new_midi = create_midi(notes, time_steps)
+        try:
+            click.echo("Processing {}...".format(file))
+            notes = get_note_values_from_midi(midi, time_steps, note_count)
+            new_midi = create_midi(notes, time_steps)
 
-        name = get_file_name(file)
-        output = "{}_{}.mid".format(name, "reduced")
-        output = os.path.join(output_dir, output)
-        click.echo("Saving {}...".format(output))
-        new_midi.write(output)
+            name = get_file_name(file)
+            output = "{}_{}.mid".format(name, "reduced")
+            output = os.path.join(output_dir, output)
+            click.echo("Saving {}...".format(output))
+            new_midi.write(output)
+        except Exception as e:
+            print("ERROR")
 
     click.echo("Done.")
 
