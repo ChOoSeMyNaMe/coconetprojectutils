@@ -8,15 +8,32 @@ from common import *
 
 import click
 
-RANGE_SOPRAN = [60, 81]
-RANGE_ALT = [52, 74]
-RANGE_TENOR = [46, 69]
-RANGE_BASS = [36, 66]
 
-RANGE_VOICES = [RANGE_SOPRAN, RANGE_ALT, RANGE_TENOR, RANGE_BASS]
+class InstrNote:
+    def __init__(self, instr: int, pitch: int):
+        self.pitch = pitch
+        self.instr = instr
+
+    def __add__(self, other):
+        self.pitch = self.pitch + other
+        return self
+
+    def __hash__(self):
+        return hash((self.instr, self.pitch))
+
+    def __eq__(self, other):
+        if self is not None and other is not None:
+            return self.pitch == other.pitch and self.instr == other.instr
+        if self is None and other is None:
+            return True
+        return False
 
 
-def is_grundton(values: List[int]) -> List[int]:  # Grundton ist doppelt
+def sortInstrNotes(notes: List[InstrNote]) -> List[InstrNote]:
+    return sorted(notes, key=lambda x: x.pitch)
+
+
+def is_grundton(values: List[InstrNote]) -> List[InstrNote]:  # Grundton ist doppelt
     for i in range(1, len(values)):
         if values[0] + 4 == values[i]:  # Dur Akkord
             for j in range(i + 1, len(values)):
@@ -28,7 +45,7 @@ def is_grundton(values: List[int]) -> List[int]:  # Grundton ist doppelt
                     return [values[0], values[i], values[j], values[0] + 12]
 
 
-def is_quinte(values: List[int]) -> List[int]:  # Quinte ist doppelt
+def is_quinte(values: List[InstrNote]) -> List[InstrNote]:  # Quinte ist doppelt
     for i in range(1, len(values)):
         if values[0] + 5 == values[i]:  # Dur Akkord
             for j in range(i + 1, len(values)):
@@ -40,7 +57,7 @@ def is_quinte(values: List[int]) -> List[int]:  # Quinte ist doppelt
                     return [values[0], values[i], values[j], values[0] + 12]
 
 
-def is_terz(values: List[int]) -> List[int]:  # Terz ist doppelt
+def is_terz(values: List[InstrNote]) -> List[InstrNote]:  # Terz ist doppelt
     for i in range(1, len(values)):
         if values[0] + 3 == values[i]:  # Dur Akkord
             for j in range(i + 1, len(values)):
@@ -55,13 +72,13 @@ def is_terz(values: List[int]) -> List[int]:  # Terz ist doppelt
 PITCH_FUNCTIONS = [is_grundton, is_quinte, is_terz]
 
 
-def transform_pitches(notes: List[int], double_index: int):
+def transform_pitches(notes: List[InstrNote], double_index: int) -> List[InstrNote]:
     return [(note + 12 if i < double_index else note) for i, note in enumerate(notes)]
 
 
-def get_base_pitches(notes: List[int], double_index: int) -> List[int]:
+def get_base_pitches(notes: List[InstrNote], double_index: int) -> List[InstrNote]:
     values = transform_pitches(notes, double_index)
-    values.sort()
+    values = sortInstrNotes(values)
     for func in PITCH_FUNCTIONS:
         result = func(values)
         if result is not None:
@@ -69,8 +86,8 @@ def get_base_pitches(notes: List[int], double_index: int) -> List[int]:
     return None
 
 
-def get_double_pitch(notes: List[int]) -> int:
-    notes.sort()
+def get_double_pitch(notes: List[InstrNote]) -> int:
+    notes = sortInstrNotes(notes)
     for i, n in enumerate(notes):
         for note in notes:
             if n + 12 == note:
@@ -104,15 +121,16 @@ def get_notes_from_instrument(instr: pretty_midi.Instrument, steps: float) -> Di
     return result
 
 
-def get_notes_from_midi(mid: pretty_midi.PrettyMIDI, steps: float) -> Dict[float, List[pretty_midi.Note]]:
-    result: Dict[float, List[pretty_midi.Note]] = {}
-    for instr in mid.instruments:
+def get_notes_from_midi(mid: pretty_midi.PrettyMIDI, steps: float) -> Dict[float, List[InstrNote]]:
+    result: Dict[float, List[InstrNote]] = {}
+    for instr_index, instr in enumerate(mid.instruments):
         extracted_notes = get_notes_from_instrument(instr, steps)
         for time, notes in extracted_notes.items():
+            mapped = [InstrNote(instr_index, note.pitch) for note in notes]
             if time not in result:
-                result[time] = notes
+                result[time] = mapped
             else:
-                result[time].extend(notes)
+                result[time].extend(mapped)
     return result
 
 
@@ -128,7 +146,7 @@ def split_array(array: List[any], count: int) -> List[List[any]]:
     return result
 
 
-def normalize_notelists(notes: List[int], desired_note_count: int) -> List[int]:
+def normalize_notelists(notes: List[InstrNote], desired_note_count: int) -> List[InstrNote]:
     if len(notes) <= desired_note_count:
         while len(notes) < desired_note_count:
             notes.append(None)
@@ -138,14 +156,14 @@ def normalize_notelists(notes: List[int], desired_note_count: int) -> List[int]:
     return result
 
 
-def get_note_values_from_midi(mid: pretty_midi.PrettyMIDI, steps: float, desired_note_count: int) -> List[List[int]]:
+def get_note_values_from_midi(mid: pretty_midi.PrettyMIDI, steps: float, desired_note_count: int) -> List[
+    List[InstrNote]]:
     notes = get_notes_from_midi(mid, steps)
-    result: List[List[int]] = []
+    result: List[List[InstrNote]] = []
     time = 0
     while len(notes) > 0:
         if time in notes:
-            pretty_notes = notes[time]
-            r = normalize_notelists([note.pitch for note in pretty_notes], desired_note_count)
+            r = normalize_notelists(notes[time], desired_note_count)
             if r is not None:
                 result.append(r)
             else:
@@ -161,7 +179,7 @@ def get_note_values_from_midi(mid: pretty_midi.PrettyMIDI, steps: float, desired
     return result
 
 
-def consume_further_notes(notes: List[List[int]], offset: int, pitch: int) -> int:
+def consume_further_notes(notes: List[List[InstrNote]], offset: int, pitch: InstrNote) -> int:
     i = offset
     count = 0
     while i < len(notes):
@@ -175,19 +193,28 @@ def consume_further_notes(notes: List[List[int]], offset: int, pitch: int) -> in
     return count
 
 
-def create_midi(notes: List[List[int]], steps: float) -> pretty_midi.PrettyMIDI:
+def create_midi(notes: List[List[InstrNote]], steps: float) -> pretty_midi.PrettyMIDI:
     result = pretty_midi.PrettyMIDI(initial_tempo=80)
     offset = 0
-    instr = [pretty_midi.Instrument(i) for i in range(len(RANGE_VOICES))]
+    instr_values = set()
+    for step in notes:
+        for note in step:
+            if note is not None:
+                instr_values.add(note.instr)
+
+    instr_indices = dict()
+    for i, x in enumerate(instr_values):
+        instr_indices[x] = i
+
+    instr = [pretty_midi.Instrument(i) for i in range(len(instr_values))]
     # instr = pretty_midi.Instrument(0)
     for moment_index in range(len(notes)):
-        for pitch_index in range(len(notes[moment_index])):
-            pitch = notes[moment_index][pitch_index]
-            if pitch is not None:
-                total_pitch_length = consume_further_notes(notes, moment_index + 1, pitch) + 1
+        for note in notes[moment_index]:
+            if note is not None:
+                total_pitch_length = consume_further_notes(notes, moment_index + 1, note) + 1
                 total_pitch_length *= steps
-                note = pretty_midi.Note(80, pitch, offset, offset + total_pitch_length)
-                instr[pitch_index].notes.append(note)
+                new_note = pretty_midi.Note(80, note.pitch, offset, offset + total_pitch_length)
+                instr[instr_indices[note.instr]].notes.append(new_note)
                 # instr.notes.append(note)
         offset += steps
     result.instruments.extend(instr)
@@ -212,24 +239,21 @@ def main(input_dir: str,
 
     midis = load_midis_with_files(input_dir, recursive)
     for file, midi in midis:
-        try:
-            click.echo("Processing {}...".format(file))
-            notes = get_note_values_from_midi(midi, time_steps, note_count)
-            new_midi = create_midi(notes, time_steps)
+        click.echo("Processing {}...".format(file))
+        notes = get_note_values_from_midi(midi, time_steps, note_count)
+        new_midi = create_midi(notes, time_steps)
 
-            name = get_file_name(file)
-            output = "{}_{}.mid".format(name, "reduced")
-            if not recursive:
-                output = os.path.join(output_dir, output)
-            else:
-                subdir = os.path.dirname(file)
-                subdir = os.path.relpath(subdir, input_dir)
-                subdir = get_and_create_folder_path(output_dir, subdir)
-                output = os.path.join(subdir, output)
-            click.echo("Saving {}...".format(output))
-            new_midi.write(output)
-        except Exception as e:
-            print("ERROR")
+        name = get_file_name(file)
+        output = "{}_{}.mid".format(name, "reduced")
+        if not recursive:
+            output = os.path.join(output_dir, output)
+        else:
+            subdir = os.path.dirname(file)
+            subdir = os.path.relpath(subdir, input_dir)
+            subdir = get_and_create_folder_path(output_dir, subdir)
+            output = os.path.join(subdir, output)
+        click.echo("Saving {}...".format(output))
+        new_midi.write(output)
 
     click.echo("Done.")
 
